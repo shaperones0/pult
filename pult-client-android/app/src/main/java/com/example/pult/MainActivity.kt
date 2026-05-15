@@ -70,9 +70,15 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnPing.setOnClickListener {
             val workRequest = OneTimeWorkRequestBuilder<PcMonitorWorker>().build()
-            WorkManager.getInstance(this).enqueue(
-                workRequest
-            )
+            val workManager = WorkManager.getInstance(this@MainActivity)
+
+            workManager.enqueue(workRequest)
+            workManager.getWorkInfoByIdLiveData(workRequest.id)
+                .observe(this@MainActivity) { workInfo ->
+                    if (workInfo != null && workInfo.state.isFinished) {
+                        viewModel.refreshHistory()
+                    }
+                }
         }
 
         checkPermissionsAndStartMonitoring()
@@ -92,10 +98,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun startBackgroundMonitoring() {
         val workRequest = PeriodicWorkRequestBuilder<PcMonitorWorker>(15, TimeUnit.MINUTES).build()
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+        val workManager = WorkManager.getInstance(this)
+        workManager.enqueueUniquePeriodicWork(
             "pc_monitor",
             ExistingPeriodicWorkPolicy.KEEP,
             workRequest
         )
+
+        workManager.getWorkInfosForUniqueWorkLiveData("pc_monitor")
+            .observe(this) { workInfos ->
+                if (workInfos.isNotEmpty()) {
+                    val isAnyFinished = workInfos.any { it.state.isFinished}
+                    if (isAnyFinished) {
+                        viewModel.refreshHistory()
+                    }
+                }
+            }
     }
 }

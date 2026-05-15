@@ -35,6 +35,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun refreshHistory() {
+        //why separate method? dont ask...
+        loadHistory()
+    }
+
     fun sendCommand() {
         _statusText.value = "Sending request..."
 

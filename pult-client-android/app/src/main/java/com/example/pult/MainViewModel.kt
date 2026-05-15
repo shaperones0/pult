@@ -1,32 +1,54 @@
 package com.example.pult
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.pult.db.DatabaseHelper
+import com.example.pult.db.HistoryEntity
 import com.example.pult.network.ActionRequest
 import com.example.pult.network.NetworkClient
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import okhttp3.internal.connection.Exchange
 
-class MainViewModel : ViewModel() {
+class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _statusText = MutableStateFlow("Waiting for command")
 
     val statusText: StateFlow<String> = _statusText
 
+    private val dbHelper = DatabaseHelper(application)
+
     fun sendCommand() {
         _statusText.value = "Sending request..."
 
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 val response = NetworkClient.api.postAction(
                     ActionRequest(actionName = "test", payload = null)
                 )
 
                 _statusText.value = "Success: ${response.message}"
+
+                dbHelper.insertAction(
+                    HistoryEntity(
+                        actionName = "test",
+                        resultMessage = response.message
+                    )
+                )
+
             } catch (e: Exception) {
                 _statusText.value = "Error: ${e.message}"
+
+                dbHelper.insertAction(
+                    HistoryEntity(
+                        actionName = "test (failed)",
+                        resultMessage = e.message ?: "Unknown error"
+                    )
+                )
             }
         }
     }

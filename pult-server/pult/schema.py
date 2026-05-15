@@ -14,7 +14,7 @@ class ActionRequest(BaseModel):
     """Represents action request data."""
 
     action_name: str
-    payload: str | None
+    payload: str | None = None
 
 
 class ActionResponse(BaseModel):

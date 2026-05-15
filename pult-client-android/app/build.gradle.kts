@@ -1,5 +1,13 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
 }
 
 android {
@@ -12,6 +20,7 @@ android {
 
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
 
     defaultConfig {
@@ -22,6 +31,8 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "API_KEY", localProperties.getProperty("PULT_API_KEY") ?: "\"\"")
     }
 
     buildTypes {
@@ -48,4 +59,11 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+
+    // Retrofit for HTTP queries
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    // JSON to object
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
+    // OkHttp for Interceptor
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

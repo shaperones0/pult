@@ -32,4 +32,8 @@ def action_execute(
         return pult_schema.ActionResponse(
             message='Workstation locked successfully'
         )
+    elif action.action_name == 'test':
+        return pult_schema.ActionResponse(
+            message='Workstation responded successfully'
+        )
     raise ValueError('Action does not exist')

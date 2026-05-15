@@ -7,7 +7,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
 object NetworkClient {
-    private const val BASE_URL = "https://agm2qr-179-43-158-11.ru.tuna.am"
+    private const val BASE_URL = "https://b21s32-2a00-1370-819a-2318-9839-c7bb-8729-904f.ru.tuna.am"
     private const val API_KEY = BuildConfig.API_KEY
 
     private val authInterceptor = Interceptor { chain ->

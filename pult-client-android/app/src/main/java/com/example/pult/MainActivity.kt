@@ -14,6 +14,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 
@@ -65,6 +66,13 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnSend.setOnClickListener {
             viewModel.sendCommand()
+        }
+
+        binding.btnPing.setOnClickListener {
+            val workRequest = OneTimeWorkRequestBuilder<PcMonitorWorker>().build()
+            WorkManager.getInstance(this).enqueue(
+                workRequest
+            )
         }
 
         checkPermissionsAndStartMonitoring()

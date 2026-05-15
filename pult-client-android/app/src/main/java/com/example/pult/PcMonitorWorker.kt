@@ -6,7 +6,6 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import androidx.activity.contextaware.ContextAware
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -34,7 +33,7 @@ class PcMonitorWorker(
             )
 
             if (metrics.cpuUsagePercent > 80.0) {
-                showNotiffication("Внимание: Перегрев ПК!", "Загрузка процессора: ${metrics.cpuUsagePercent}%")
+                showNotification("Внимание: Перегрев ПК!", "Загрузка процессора: ${metrics.cpuUsagePercent}%")
             }
 
             Result.success()
@@ -46,7 +45,7 @@ class PcMonitorWorker(
         }
     }
 
-    private fun showNotiffication(title: String, message: String) {
+    private fun showNotification(title: String, message: String) {
         val channelId = "pult_alerts_channel"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(

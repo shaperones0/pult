@@ -17,10 +17,23 @@ import okhttp3.internal.connection.Exchange
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _statusText = MutableStateFlow("Waiting for command")
-
     val statusText: StateFlow<String> = _statusText
 
+    private val _historyList = MutableStateFlow<List<HistoryEntity>>(emptyList())
+    val historyList: StateFlow<List<HistoryEntity>> = _historyList
+
     private val dbHelper = DatabaseHelper(application)
+
+    init {
+        loadHistory()
+    }
+
+    private fun loadHistory() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val list = dbHelper.getAllHistory()
+            _historyList.value = list
+        }
+    }
 
     fun sendCommand() {
         _statusText.value = "Sending request..."
@@ -39,6 +52,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         resultMessage = response.message
                     )
                 )
+                loadHistory()
 
             } catch (e: Exception) {
                 _statusText.value = "Error: ${e.message}"
@@ -49,6 +63,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         resultMessage = e.message ?: "Unknown error"
                     )
                 )
+                loadHistory()
             }
         }
     }

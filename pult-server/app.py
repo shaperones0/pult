@@ -3,12 +3,17 @@
 import os
 
 import uvicorn
+from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException
 
 import pult.schema as pult_schema
 import pult.system_controller as pult_controller
 
+load_dotenv()
+
 API_KEY = os.getenv('API_KEY')
+if API_KEY is None:
+    raise ValueError('API_KEY environment variable not set.')
 PORT = int(os.getenv('PULT_PORT', 8000))
 
 

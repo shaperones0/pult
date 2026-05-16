@@ -14,18 +14,24 @@ import okhttp3.Request
 class PultRepository(
     application: Application,
     private val wsMetrics: MutableStateFlow<String>,
-    private val wsUrl: String
 ) {
 
     private var webSocket: okhttp3.WebSocket? = null
-
     private val dbHelper = DatabaseHelper(application)
+
+    private val prefsManager = PrefsManager(application)
+
+    init {
+        NetworkClient.initialize(prefsManager)
+    }
 
     fun wsStart() {
         val client = NetworkClient.okHttpClient
-        val request = Request.Builder()
-            .url(wsUrl)
-            .build()
+        val baseUrl = prefsManager.getServerUrl() ?: return
+        val wsUrl = baseUrl
+            .replace("http://", "ws://")
+            .replace("https://", "wss://") + "ws/metrics"
+        val request = Request.Builder().url(wsUrl).build()
 
         val listener = MetricsWebSocketListener(wsMetrics)
 

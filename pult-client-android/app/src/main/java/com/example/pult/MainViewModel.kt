@@ -29,7 +29,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repo = PultRepository(
         application,
         _wsMetrics,
-        "ws://10.0.2.2:7070/ws/metrics"
     )
 
     init {

@@ -52,4 +52,8 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "pult_databas
         cursor.close()
         return list
     }
+
+    fun clearAll() {
+        writableDatabase.execSQL("DELETE FROM action_history")
+    }
 }

@@ -70,4 +70,8 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.9.0")
     // charts
     implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    // qr codes
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+    // encrypted storage
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 }

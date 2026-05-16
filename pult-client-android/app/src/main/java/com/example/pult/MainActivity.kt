@@ -2,6 +2,7 @@ package com.example.pult
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -21,8 +22,14 @@ import androidx.work.WorkManager
 
 import com.example.pult.databinding.ActivityMainBinding
 import com.example.pult.ui.HistoryAdapter
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.LineData
+import com.github.mikephil.charting.data.LineDataSet
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import androidx.core.graphics.toColorInt
+import com.github.mikephil.charting.data.Entry
 
 class MainActivity : AppCompatActivity() {
 
@@ -43,6 +50,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        setupCharts()
 
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
 
@@ -79,7 +88,13 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             viewModel.wsMetrics.collect { metricsJson ->
-                binding.tvStatus.text = "Like: $metricsJson"
+                try {
+                    val jsonObject = JSONObject(metricsJson)
+                    val cpuUsage = jsonObject.getDouble("cpu_usage_percent").toFloat()
+                    addEntryToLiveChart(cpuUsage)
+                } catch (e: Exception) {
+                    //ignore
+                }
             }
         }
 
@@ -101,6 +116,54 @@ class MainActivity : AppCompatActivity() {
         }
 
         checkPermissionsAndStartMonitoring()
+    }
+
+    private fun setupCharts() {
+        val charts = listOf(binding.chartLive, binding.chartHistory)
+
+        for (chart in charts) {
+            chart.description.isEnabled = false
+            chart.setTouchEnabled(true)
+            chart.isDragEnabled = true
+            chart.setScaleEnabled(true)
+            chart.setDrawGridBackground(false)
+
+            chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
+            chart.xAxis.setDrawGridLines(false)
+            chart.xAxis.textColor = Color.LTGRAY
+
+            chart.axisLeft.setDrawGridLines(false)
+            chart.axisLeft.textColor = Color.LTGRAY
+            chart.axisLeft.axisMaximum = 100f
+            chart.axisLeft.axisMinimum = 0f
+
+            chart.axisRight.isEnabled = false
+            chart.legend.textColor = Color.WHITE
+
+            chart.data = LineData()
+        }
+    }
+
+    private fun addEntryToLiveChart(cpuUsage: Float) {
+        val data = binding.chartLive.data ?: return
+        var set = data.getDataSetByIndex(0) as LineDataSet?
+
+        if (set == null) {
+            set = LineDataSet(null, "Live CPU Usage")
+            set.color = "#00e676".toColorInt()
+            set.setDrawCircles(false)
+
+            set.lineWidth = 2f
+            set.mode = LineDataSet.Mode.CUBIC_BEZIER
+            data.addDataSet(set)
+        }
+
+        data.addEntry(Entry(set.entryCount.toFloat(), cpuUsage), 0)
+        binding.chartLive.data.notifyDataChanged()
+        binding.chartLive.notifyDataSetChanged()
+
+        binding.chartLive.setVisibleXRangeMaximum(30f)
+        binding.chartLive.moveViewToX(data.entryCount.toFloat())
     }
 
     private fun checkPermissionsAndStartMonitoring() {

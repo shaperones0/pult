@@ -68,4 +68,6 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     // bg jobs
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+    // charts
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }

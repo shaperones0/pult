@@ -42,18 +42,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun sendCommand() {
         _statusText.value = "Sending request..."
-
+        val actionName = "lock"
         viewModelScope.launch(Dispatchers.IO) {
             try {
+
                 val response = NetworkClient.api.postAction(
-                    ActionRequest(actionName = "test", payload = null)
+                    ActionRequest(actionName = actionName, payload = null)
                 )
 
                 _statusText.value = "Success: ${response.message}"
 
                 dbHelper.insertAction(
                     HistoryEntity(
-                        actionName = "test",
+                        actionName = actionName,
                         resultMessage = response.message
                     )
                 )
@@ -64,7 +65,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
                 dbHelper.insertAction(
                     HistoryEntity(
-                        actionName = "test (failed)",
+                        actionName = "$actionName (failed)",
                         resultMessage = e.message ?: "Unknown error"
                     )
                 )

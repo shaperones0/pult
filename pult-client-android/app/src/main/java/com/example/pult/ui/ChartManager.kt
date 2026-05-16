@@ -8,6 +8,7 @@ import com.github.mikephil.charting.components.AxisBase
 import com.github.mikephil.charting.components.Legend
 import com.github.mikephil.charting.components.LimitLine
 import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.DataSet
 import com.github.mikephil.charting.data.Entry
 import com.github.mikephil.charting.data.LineData
 import com.github.mikephil.charting.data.LineDataSet
@@ -24,6 +25,16 @@ class ChartManager(val chartLive: LineChart, val chartHistory: LineChart) {
     private val liveTimestamps = mutableListOf<Long>()
     private val liveStartTime = System.currentTimeMillis()
     private val historyXToTimeMap = mutableListOf<Pair<Float, Long>>()
+
+    data class ChartStyle(
+        val colorRes: Int,
+        val label: String
+    )
+
+    private val chartStyle = mapOf(
+        "CPU" to ChartStyle("#00E676".toColorInt(), "CPU"),
+        "RAM" to ChartStyle("#FF5252".toColorInt(), "RAM")
+    )
     
     fun chartsSetup() {
         val charts = listOf(chartLive, chartHistory)
@@ -56,7 +67,10 @@ class ChartManager(val chartLive: LineChart, val chartHistory: LineChart) {
         //pre-fill vales of chart live
         val maxN: Int = liveTimeWindow.toInt()
         for (i in 0..<maxN) {
-            chartLivePush(0f, 0f, (i.toLong() - liveTimeWindow) * 1000 + liveStartTime)
+            chartLivePush(
+                0f, 0f,
+                (i.toLong() - liveTimeWindow) * 1000 + liveStartTime
+            )
         }
     }
     
@@ -66,12 +80,12 @@ class ChartManager(val chartLive: LineChart, val chartHistory: LineChart) {
         var ramSet = data.getDataSetByIndex(1) as LineDataSet?
 
         if (cpuSet == null) {
-            cpuSet = chartMakeDataset(mutableListOf(), "#00E676".toColorInt(), true, "CPU")
+            cpuSet = chartMakeDatasetStyle("CPU", mutableListOf(), true)
             data.addDataSet(cpuSet)
         }
 
         if (ramSet == null) {
-            ramSet = chartMakeDataset(mutableListOf(), "#FF5252".toColorInt(), true, "RAM")
+            ramSet = chartMakeDatasetStyle("RAM", mutableListOf(), true)
             data.addDataSet(ramSet)
         }
 
@@ -103,7 +117,9 @@ class ChartManager(val chartLive: LineChart, val chartHistory: LineChart) {
     }
 
     fun chartHistoryFromList(historyList: List<HistoryEntity>) {
-        val metricsLogs = historyList.filter { it.logLevel == "info" && it.resultMessage.contains("CPU:") }
+        val metricsLogs = historyList.filter {
+            it.logLevel == "info" && it.resultMessage.contains("CPU:")
+        }
         if (metricsLogs.isEmpty()) return
 
         val regex = """CPU: ([\d.]+)%, RAM: ([\d.]+)%""".toRegex()
@@ -132,10 +148,8 @@ class ChartManager(val chartLive: LineChart, val chartHistory: LineChart) {
                 if (deltaMs > maxGapMs) {
                     //break
                     if (currentCpuChunk.isNotEmpty()) {
-                        dataSets.add(chartMakeDataset(currentCpuChunk,
-                            "#00E676".toColorInt(), dataSets.isEmpty(), "CPU"))
-                        dataSets.add(chartMakeDataset(currentRamChunk,
-                            "#FF5252".toColorInt(), dataSets.size == 1, "RAM"))
+                        dataSets.add(chartMakeDatasetStyle("CPU", currentCpuChunk, dataSets.isEmpty()))
+                        dataSets.add(chartMakeDatasetStyle("RAM", currentRamChunk, dataSets.size == 1))
                         currentCpuChunk = mutableListOf()
                         currentRamChunk = mutableListOf()
                     }
@@ -156,12 +170,10 @@ class ChartManager(val chartLive: LineChart, val chartHistory: LineChart) {
             lastTimestamp = log.timestamp
         }
 
-
         if (currentCpuChunk.isNotEmpty()) {
-            dataSets.add(chartMakeDataset(currentCpuChunk,
-                "#00E676".toColorInt(), dataSets.isEmpty(), "CPU"))
-            dataSets.add(chartMakeDataset(currentRamChunk,
-                "#FF5252".toColorInt(), dataSets.size == 1, "RAM"))
+            dataSets.add(chartMakeDatasetStyle("CPU", currentCpuChunk, dataSets.isEmpty()))
+            dataSets.add(chartMakeDatasetStyle("RAM", currentRamChunk, dataSets.size == 1))
+
         }
 
         chartHistory.data = LineData(dataSets)
@@ -187,6 +199,16 @@ class ChartManager(val chartLive: LineChart, val chartHistory: LineChart) {
             set.form = Legend.LegendForm.NONE
         }
         return set
+    }
+
+    private fun chartMakeDatasetStyle(styleName: String, entries: List<Entry>, showInLegend: Boolean): LineDataSet {
+        val style = chartStyle[styleName]!!
+        return chartMakeDataset(
+            entries,
+            style.colorRes,
+            showInLegend,
+            style.label
+        )
     }
 
     private fun chartMakeLimitLine(chart: LineChart, xPos: Float) {
@@ -215,7 +237,6 @@ class ChartManager(val chartLive: LineChart, val chartHistory: LineChart) {
         private val format = SimpleDateFormat(pattern, Locale.getDefault())
         override fun getAxisLabel(value: Float, axis: AxisBase?): String {
             if (xToTimeMap.isEmpty()) return ""
-            // Ищем ближайшую известную координату X
             val closest = xToTimeMap.minByOrNull { abs(it.first - value) }
             return closest?.let { format.format(Date(it.second)) } ?: ""
         }

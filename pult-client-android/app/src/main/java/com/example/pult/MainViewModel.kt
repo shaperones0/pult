@@ -26,50 +26,36 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _wsMetrics = MutableStateFlow("Waiting for WS...")
     val wsMetrics: StateFlow<String> = _wsMetrics
 
-    private var webSocket: okhttp3.WebSocket? = null
-
-    private val dbHelper = DatabaseHelper(application)
+    private val repo = PultRepository(
+        application,
+        _wsMetrics,
+        "ws://10.0.2.2:7070/ws/metrics"
+    )
 
     init {
         loadHistory()
-        startWebSocket()
-    }
-
-    private fun startWebSocket() {
-        val client = NetworkClient.okHttpClient
-        val wsUrl = "ws://10.0.2.2:7070/ws/metrics"
-        val request = Request.Builder()
-            .url(wsUrl)
-            .build()
-
-        val listener = MetricsWebSocketListener(_wsMetrics)
-        webSocket = client.newWebSocket(request, listener)
+        repo.wsStart()
     }
 
     override fun onCleared() {
         super.onCleared()
 
-        webSocket?.close(1000, "App closed")
+        repo.wsClose("App closed")
     }
 
     private fun loadHistory() {
         viewModelScope.launch(Dispatchers.IO) {
-            val list = dbHelper.getAllHistory()
-            _historyList.value = list
+            _historyList.value = repo.dbHistoryList()
         }
     }
 
     fun refreshHistory() {
-        //why separate method? dont ask...
         loadHistory()
     }
 
     fun saveLiveMetricsToDb(cpu: Float, ram: Float) {
         viewModelScope.launch(Dispatchers.IO) {
-            val logMessage = "CPU: $cpu%, RAM: $ram%"
-            dbHelper.insertAction(
-                HistoryEntity(actionName = "background_monitor", logLevel = "info", resultMessage = logMessage)
-            )
+            repo.dbHistoryPushMonitor(cpu, ram)
             loadHistory()
         }
     }
@@ -79,32 +65,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val actionName = "lock"
         viewModelScope.launch(Dispatchers.IO) {
             try {
-
-                val response = NetworkClient.api.postAction(
-                    ActionRequest(actionName = actionName, payload = null)
-                )
+                val response = repo.netPostAction(actionName)
 
                 _statusText.value = "Success: ${response.message}"
-
-                dbHelper.insertAction(
-                    HistoryEntity(
-                        actionName = actionName,
-                        logLevel = "info",
-                        resultMessage = response.message
-                    )
-                )
+                repo.dbHistoryPushActionResponse(actionName, response.message)
                 loadHistory()
 
             } catch (e: Exception) {
                 _statusText.value = "Error: ${e.message}"
-
-                dbHelper.insertAction(
-                    HistoryEntity(
-                        actionName = "$actionName (failed)",
-                        logLevel = "error",
-                        resultMessage = e.message ?: "Unknown error"
-                    )
-                )
+                repo.dbHistoryPushActionFail(actionName, e.message ?: "Unknown error")
                 loadHistory()
             }
         }

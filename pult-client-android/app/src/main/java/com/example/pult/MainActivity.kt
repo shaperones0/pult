@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.LinearLayout
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
@@ -46,8 +47,11 @@ class MainActivity : AppCompatActivity() {
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
 
         adapter = HistoryAdapter()
+
+        val layoutManager = LinearLayoutManager(this)
+        layoutManager.stackFromEnd = true
         // vertical
-        binding.rvHistory.layoutManager = LinearLayoutManager(this)
+        binding.rvHistory.layoutManager = layoutManager
         binding.rvHistory.adapter = adapter
 
         // sub
@@ -60,7 +64,16 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             viewModel.historyList.collect { list ->
+                //autoscroll on update
+                val layoutManager = binding.rvHistory.layoutManager as LinearLayoutManager
+                val lastVisiblePosition = layoutManager.findLastVisibleItemPosition()
+                val isAtBottom = lastVisiblePosition >= adapter.itemCount - 2 || adapter.itemCount == 0
+
                 adapter.submitList(list)
+
+                if (isAtBottom && list.isNotEmpty()) {
+                    binding.rvHistory.scrollToPosition(list.size - 1)
+                }
             }
         }
 

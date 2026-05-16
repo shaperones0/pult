@@ -12,7 +12,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import okhttp3.internal.connection.Exchange
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -55,6 +54,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 dbHelper.insertAction(
                     HistoryEntity(
                         actionName = actionName,
+                        logLevel = "info",
                         resultMessage = response.message
                     )
                 )
@@ -66,6 +66,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 dbHelper.insertAction(
                     HistoryEntity(
                         actionName = "$actionName (failed)",
+                        logLevel = "error",
                         resultMessage = e.message ?: "Unknown error"
                     )
                 )

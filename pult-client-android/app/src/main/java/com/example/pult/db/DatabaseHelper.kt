@@ -12,6 +12,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "pult_databas
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 actionName TEXT,
                 resultMessage TEXT,
+                logLevel TEXT,
                 timestamp INTEGER
             )
         """.trimIndent())
@@ -27,6 +28,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "pult_databas
         val values = ContentValues().apply {
             put("actionName", history.actionName)
             put("resultMessage", history.resultMessage)
+            put("logLevel", history.logLevel)
             put("timestamp", history.timestamp)
         }
         writableDatabase.insert("action_history", null, values)
@@ -34,7 +36,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "pult_databas
 
     fun getAllHistory(): List<HistoryEntity> {
         val list = mutableListOf<HistoryEntity>()
-        val cursor = readableDatabase.rawQuery("SELECT * FROM action_history ORDER BY timestamp DESC", null)
+        val cursor = readableDatabase.rawQuery("SELECT * FROM action_history ORDER BY timestamp ASC", null)
 
         while (cursor.moveToNext()) {
             list.add(
@@ -42,6 +44,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "pult_databas
                     id = cursor.getInt(cursor.getColumnIndexOrThrow("id")),
                     actionName = cursor.getString(cursor.getColumnIndexOrThrow("actionName")),
                     resultMessage = cursor.getString(cursor.getColumnIndexOrThrow("resultMessage")),
+                    logLevel = cursor.getString(cursor.getColumnIndexOrThrow("logLevel")),
                     timestamp = cursor.getLong(cursor.getColumnIndexOrThrow("timestamp"))
                 )
             )

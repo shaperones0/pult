@@ -29,7 +29,11 @@ class PcMonitorWorker(
             val logMessage = "CPU: ${metrics.cpuUsagePercent}%, RAM: ${metrics.ramUsagePercent}%"
 
             dbHelper.insertAction(
-                HistoryEntity(actionName = "background_monitor", resultMessage = logMessage)
+                HistoryEntity(
+                    actionName = "background_monitor",
+                    logLevel = "info",
+                    resultMessage = logMessage
+                )
             )
 
             if (metrics.cpuUsagePercent > 80.0) {
@@ -39,7 +43,11 @@ class PcMonitorWorker(
             Result.success()
         } catch (e: Exception) {
             dbHelper.insertAction(
-                HistoryEntity(actionName = "background_monitor_failed", resultMessage = e.message ?: "Error")
+                HistoryEntity(
+                    actionName = "background_monitor_failed",
+                    logLevel = "error",
+                    resultMessage = e.message ?: "Error"
+                )
             )
             Result.retry()
         }

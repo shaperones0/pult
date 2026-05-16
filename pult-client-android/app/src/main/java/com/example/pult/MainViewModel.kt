@@ -7,11 +7,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.pult.db.DatabaseHelper
 import com.example.pult.db.HistoryEntity
 import com.example.pult.network.ActionRequest
+import com.example.pult.network.MetricsWebSocketListener
 import com.example.pult.network.NetworkClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import okhttp3.Request
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -21,10 +23,33 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _historyList = MutableStateFlow<List<HistoryEntity>>(emptyList())
     val historyList: StateFlow<List<HistoryEntity>> = _historyList
 
+    private val _wsMetrics = MutableStateFlow("Waiting for WS...")
+    val wsMetrics: StateFlow<String> = _wsMetrics
+
+    private var webSocket: okhttp3.WebSocket? = null
+
     private val dbHelper = DatabaseHelper(application)
 
     init {
         loadHistory()
+        startWebSocket()
+    }
+
+    private fun startWebSocket() {
+        val client = NetworkClient.okHttpClient
+        val wsUrl = "ws://10.0.2.2:7070/ws/metrics"
+        val request = Request.Builder()
+            .url(wsUrl)
+            .build()
+
+        val listener = MetricsWebSocketListener(_wsMetrics)
+        webSocket = client.newWebSocket(request, listener)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+
+        webSocket?.close(1000, "App closed")
     }
 
     private fun loadHistory() {

@@ -1,13 +1,24 @@
 """Remote PC Controller API server."""
 
+import asyncio
 import os
+from logging import getLogger
 
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import (
+    Depends,
+    FastAPI,
+    Header,
+    HTTPException,
+    WebSocket,
+    WebSocketDisconnect,
+)
 
 import pult.schema as pult_schema
 import pult.system_controller as pult_controller
+
+logger = getLogger(__name__)
 
 load_dotenv()
 
@@ -62,6 +73,22 @@ def post_action(
         return pult_controller.action_execute(request)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@app.websocket('/ws/metrics')
+async def ws_metrics(
+    websocket: WebSocket,
+) -> None:
+    """## Subscribe to metrics events."""
+    logger.info('WebSocket connected.')
+    await websocket.accept()
+    try:
+        while True:
+            metrics = pult_controller.get_system_metrics()
+            await websocket.send_json(metrics.model_dump())
+            await asyncio.sleep(2)
+    except WebSocketDisconnect:
+        logger.info('WebSocket disconnected.')
 
 
 if __name__ == '__main__':

@@ -77,6 +77,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        lifecycleScope.launch {
+            viewModel.wsMetrics.collect { metricsJson ->
+                binding.tvStatus.text = "Like: $metricsJson"
+            }
+        }
+
         binding.btnSend.setOnClickListener {
             viewModel.sendCommand()
         }

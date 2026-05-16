@@ -64,6 +64,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         loadHistory()
     }
 
+    fun saveLiveMetricsToDb(cpu: Float, ram: Float) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val logMessage = "CPU: $cpu%, RAM: $ram%"
+            dbHelper.insertAction(
+                HistoryEntity(actionName = "background_monitor", logLevel = "info", resultMessage = logMessage)
+            )
+            loadHistory()
+        }
+    }
+
     fun sendCommand() {
         _statusText.value = "Sending request..."
         val actionName = "lock"

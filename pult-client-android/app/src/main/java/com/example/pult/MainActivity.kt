@@ -1,12 +1,14 @@
 package com.example.pult
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.GravityCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -29,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: HistoryAdapter
 
     private lateinit var chartManager: ChartManager
+    private lateinit var prefsManager: PrefsManager
 
     var socketTicksCount = 0
 
@@ -46,10 +49,26 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        prefsManager = PrefsManager(this)
+
         chartManager = ChartManager(binding.chartLive, binding.chartHistory)
         chartManager.chartsSetup()
 
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
+
+        binding.btnMenu.setOnClickListener {
+            binding.drawerLayout.openDrawer(GravityCompat.START)
+        }
+
+        binding.navView.setNavigationItemSelectedListener { menuItem ->
+            when (menuItem.itemId) {
+                R.id.nav_logout -> {
+                    performLogout()
+                    true
+                }
+                else -> false
+            }
+        }
 
         adapter = HistoryAdapter()
 
@@ -119,6 +138,15 @@ class MainActivity : AppCompatActivity() {
         }
 
         checkPermissionsAndStartMonitoring()
+    }
+
+    private fun performLogout() {
+        prefsManager.clearCredentials()
+
+        val intent = Intent(this, LoginActivity::class.java)
+        startActivity(intent)
+
+        finish()
     }
 
     private fun checkPermissionsAndStartMonitoring() {

@@ -28,7 +28,7 @@ class PcMonitorWorker(
             val metrics = NetworkClient.api.getMetrics()
             val logMessage = "CPU: ${metrics.cpuUsagePercent}%, RAM: ${metrics.ramUsagePercent}%"
 
-            dbHelper.insertAction(
+            dbHelper.actionInsert(
                 HistoryEntity(
                     actionName = "background_monitor",
                     logLevel = "info",
@@ -42,7 +42,7 @@ class PcMonitorWorker(
 
             Result.success()
         } catch (e: Exception) {
-            dbHelper.insertAction(
+            dbHelper.actionInsert(
                 HistoryEntity(
                     actionName = "background_monitor_failed",
                     logLevel = "error",

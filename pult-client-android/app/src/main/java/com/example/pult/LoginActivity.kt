@@ -128,7 +128,7 @@ class LoginActivity: AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     prefsManager.saveCredentials(url, key)
 
-                    DatabaseHelper(this@LoginActivity).clearAll()
+                    DatabaseHelper(this@LoginActivity).actionClear()
 
 //                    Toast.makeText(this@LoginActivity, "Успешно подключено!", Toast.LENGTH_SHORT).show()
                     startMainActivity()

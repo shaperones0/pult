@@ -2,13 +2,13 @@ package com.example.pult
 
 import android.app.Application
 import com.example.pult.db.DatabaseHelper
+import com.example.pult.db.FavoriteEntity
 import com.example.pult.db.HistoryEntity
 import com.example.pult.network.ActionRequest
 import com.example.pult.network.ActionResponse
 import com.example.pult.network.MetricsWebSocketListener
 import com.example.pult.network.NetworkClient
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import okhttp3.Request
 
 class PultRepository(
@@ -43,11 +43,11 @@ class PultRepository(
     }
 
     fun dbHistoryList(): List<HistoryEntity> {
-        return dbHelper.getAllHistory()
+        return dbHelper.actionList()
     }
 
     fun dbHistoryPush(historyEntity: HistoryEntity) {
-        dbHelper.insertAction(historyEntity)
+        dbHelper.actionInsert(historyEntity)
     }
 
     fun dbHistoryPushMonitor(cpu: Float, ram: Float) {
@@ -77,6 +77,18 @@ class PultRepository(
                 resultMessage = errorMessage
             )
         )
+    }
+
+    fun dbFavoriteList(): List<FavoriteEntity> {
+        return dbHelper.favoriteList()
+    }
+
+    fun dbFavoriteUpsert(command: String) {
+        dbHelper.favoriteUpsert(command)
+    }
+
+    fun dbFavoriteRemove(command: String) {
+        dbHelper.favoriteRemove(command)
     }
 
     suspend fun netPostAction(actionName: String): ActionResponse {

@@ -1,8 +1,10 @@
 """Remote PC Controller API server."""
 
 import asyncio
+import logging
 import os
-from logging import getLogger
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 import uvicorn
 from dotenv import load_dotenv
@@ -15,10 +17,11 @@ from fastapi import (
     WebSocketDisconnect,
 )
 
+import pult.logs as pult_logs
 import pult.schema as pult_schema
 import pult.system_controller as pult_controller
 
-logger = getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -38,9 +41,33 @@ def security_verify(x_api_key: str = Header(default=None)) -> None:
         raise HTTPException(status_code=401, detail='Unauthorized')
 
 
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """FastAPI lifespan.
+
+    Intercepts FastAPI and uvicorn loggers.
+
+    :param _: FastAPI app.
+    """
+    loggers_to_intercept = (
+        logging.getLogger('uvicorn'),
+        logging.getLogger('uvicorn.access'),
+        logging.getLogger('uvicorn.error'),
+        logging.getLogger('fastapi'),
+        logger,
+    )
+    for inner_logger in loggers_to_intercept:
+        if pult_logs.memory_handler not in inner_logger.handlers:
+            inner_logger.addHandler(pult_logs.memory_handler)
+            inner_logger.setLevel(logging.INFO)
+
+    yield
+
+
 app = FastAPI(
     title='Pult: Remote PC Controller API',
     dependencies=[Depends(security_verify)],
+    lifespan=lifespan,
 )
 
 
@@ -82,10 +109,30 @@ async def ws_metrics(
     """## Subscribe to metrics events."""
     logger.info('WebSocket connected.')
     await websocket.accept()
+
+    # wait for first message
+    try:
+        data = await websocket.receive_json()
+        last_ts = data.get('last_timestamp', 0)
+    except Exception:  # noqa: BLE001
+        last_ts = 0
+
     try:
         while True:
             metrics = pult_controller.get_system_metrics()
-            await websocket.send_json(metrics.model_dump())
+
+            new_logs = pult_logs.memory_handler.get_logs_after(
+                last_ts, limit=15
+            )
+            if new_logs:
+                last_ts = new_logs[-1].timestamp
+
+            status = pult_schema.SystemStatus(
+                metrics=metrics,
+                logs=new_logs,
+            )
+
+            await websocket.send_json(status.model_dump())
             await asyncio.sleep(2)
     except WebSocketDisconnect:
         logger.info('WebSocket disconnected.')

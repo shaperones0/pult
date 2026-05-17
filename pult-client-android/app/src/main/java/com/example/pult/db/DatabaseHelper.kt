@@ -66,6 +66,21 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "pult_databas
         writableDatabase.execSQL("DELETE FROM action_history")
     }
 
+    fun actionCleanupOld() {
+        val threshold = System.currentTimeMillis() - (24 * 60 * 60 * 1000L)
+        writableDatabase.delete("action_history", "timestamp < ?", arrayOf(threshold.toString()))
+    }
+
+    fun actionGetLastTimestamp(): Long {
+        val cursor = readableDatabase.rawQuery("SELECT MAX(timestamp) FROM action_history", null)
+        var lastTime = 0L
+        if (cursor.moveToFirst()) {
+            lastTime = cursor.getLong(0)
+        }
+        cursor.close()
+        return lastTime
+    }
+
     fun favoriteUpsert(command: String) {
         //insert new favorite command or update last used timestamp of existing one
 

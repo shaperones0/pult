@@ -3,11 +3,26 @@
 from pydantic import BaseModel
 
 
+class LogEntry(BaseModel):
+    """Represents log entry data."""
+
+    timestamp: int
+    level: str
+    message: str
+
+
 class SystemMetrics(BaseModel):
     """Represents system metrics data."""
 
     cpu_usage_percent: float
     ram_usage_percent: float
+
+
+class SystemStatus(BaseModel):
+    """Represents system status data."""
+
+    metrics: SystemMetrics
+    logs: list[LogEntry]
 
 
 class ActionRequest(BaseModel):

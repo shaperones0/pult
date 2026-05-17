@@ -7,6 +7,19 @@ import psutil
 import pult.schema as pult_schema
 
 
+def str_crop_ellipsis(s: str, max_len: int) -> str:
+    """Crop the string.
+
+    Replaces remainder of the string with ellipsis.
+    :param s: String to crop.
+    :param max_len: Maximum length of string.
+    :return: Cropped string.
+    """
+    if len(s) > max_len:
+        return s[: max_len - 3] + '...'
+    return s
+
+
 def get_system_metrics() -> pult_schema.SystemMetrics:
     """Query system metrics.
 
@@ -27,13 +40,27 @@ def action_execute(
     :return: Action response.
     :raises ValueError: Action does not exist.
     """
-    if action.action_name == 'lock':
-        subprocess.call(['rundll32.exe', 'user32.dll,LockWorkStation'])  # noqa: S607
-        return pult_schema.ActionResponse(
-            message='Workstation locked successfully'
-        )
-    if action.action_name == 'test':
-        return pult_schema.ActionResponse(
-            message='Workstation responded successfully'
-        )
-    raise ValueError('Action does not exist')
+    if action.action_name == 'cmd':
+        cmd = action.payload
+        if cmd is None:
+            return pult_schema.response('Error: missing command')
+        try:
+            result = subprocess.run(  # noqa: S602
+                cmd, shell=True, capture_output=True, text=True, timeout=15
+            )
+        except subprocess.TimeoutExpired:
+            return pult_schema.response(
+                'Error: Command timed out after 15 seconds.'
+            )
+        except Exception as e:  # noqa: BLE001
+            return pult_schema.response(f'Error: {e}')
+
+        output = result.stdout.strip()
+        if not output:
+            output = result.stderr.strip()
+        if not output:
+            output = 'Command executed successfully (no output)'
+
+        return pult_schema.response(str_crop_ellipsis(output, 500))
+
+    return pult_schema.response('Error. Action does not exist.')

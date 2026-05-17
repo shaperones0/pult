@@ -21,3 +21,12 @@ class ActionResponse(BaseModel):
     """Represents action response data."""
 
     message: str
+
+
+def response(message: str) -> ActionResponse:
+    """Shortcut for action response.
+
+    :param message: Action response message.
+    :return: Action response model.
+    """
+    return ActionResponse(message=message)

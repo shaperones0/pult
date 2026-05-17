@@ -1,9 +1,9 @@
 .PHONY: format
 format: ## Auto-format and auto-fix code (for local development)
-	@echo "Auto-fixing code: Ruff"
-	@uv run ruff check --fix
 	@echo "Formatting code: Ruff"
 	@uv run ruff format
+	@echo "Auto-fixing code: Ruff"
+	@uv run ruff check --fix
 
 .PHONY: lint
 lint: ## Check code without mutating (for CI/CD)

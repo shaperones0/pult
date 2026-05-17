@@ -17,7 +17,14 @@ class HistoryAdapter : RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder>() 
     private var items: List<HistoryEntity> = emptyList()
 
     fun submitList(newList: List<HistoryEntity>) {
-        items = newList
+        //filter
+        val tempList = mutableListOf<HistoryEntity>()
+        for (item in newList) {
+            if (item.actionName == "background_monitor") continue
+
+            tempList.add(item)
+        }
+        items = tempList
         notifyDataSetChanged()  //force redraw
     }
 
@@ -41,7 +48,10 @@ class HistoryAdapter : RecyclerView.Adapter<HistoryAdapter.HistoryViewHolder>() 
             fun bind(item: HistoryEntity) {
                 binding.tvTime.text = "[${dateFormat.format(Date(item.timestamp))}]"
 
-                val content = "${item.actionName}: ${item.resultMessage}"
+                val content = if (item.actionName == "server_log")
+                    item.resultMessage else
+                    "${item.actionName}: ${item.resultMessage}"
+
                 binding.tvLogContent.text = content
 
                 if (item.logLevel == "error") {

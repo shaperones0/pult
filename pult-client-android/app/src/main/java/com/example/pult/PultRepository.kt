@@ -32,9 +32,9 @@ class PultRepository(
             .replace("http://", "ws://")
             .replace("https://", "wss://") + "ws/metrics"
         val request = Request.Builder().url(wsUrl).build()
+        val lastTimeStamp = dbHelper.actionGetLastTimestamp()
 
-        val listener = MetricsWebSocketListener(wsMetrics)
-
+        val listener = MetricsWebSocketListener(wsMetrics, lastTimeStamp)
         webSocket = client.newWebSocket(request, listener)
     }
 
@@ -89,6 +89,10 @@ class PultRepository(
 
     fun dbFavoriteRemove(command: String) {
         dbHelper.favoriteRemove(command)
+    }
+
+    fun dbActionCleanupOld() {
+        dbHelper.actionCleanupOld()
     }
 
     suspend fun netPostAction(actionName: String, payload: String? = null): ActionResponse {

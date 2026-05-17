@@ -6,9 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.pult.db.FavoriteEntity
 import com.example.pult.db.HistoryEntity
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import org.json.JSONArray
+import retrofit2.HttpException
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -24,12 +28,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _favoriteList = MutableStateFlow<List<FavoriteEntity>>(emptyList())
     val favoriteList: StateFlow<List<FavoriteEntity>> = _favoriteList
 
-    private val repo = PultRepository(
-        application,
-        _wsMetrics,
-    )
+    private val _authErrorEvent = MutableSharedFlow<Unit>()
+    val authErrorEvent = _authErrorEvent.asSharedFlow()
+
+    private val repo = PultRepository(application, _wsMetrics)
 
     init {
+        cleanupOldData()
         historyLoad()
         favoritesLoad()
         repo.wsStart()
@@ -78,19 +83,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private fun cleanupOldData() {
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.dbActionCleanupOld()
+        }
+    }
+
+    fun processIncomingLogs(logsArray: JSONArray) {
+        if (logsArray.length() == 0) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            for (i in 0 until logsArray.length()) {
+                val logObj = logsArray.getJSONObject(i)
+                val msg = logObj.getString("message")
+                repo.dbHistoryPushActionResponse("server_log", msg)
+            }
+            historyLoad()
+        }
+    }
+
     fun sendCommand(command: String) {
         _statusText.value = "Sending request..."
         val actionName = "cmd"
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val response = repo.netPostAction(actionName, command)
-
                 repo.dbHistoryPushActionResponse(actionName, response.message)
                 historyLoad()
 
             } catch (e: Exception) {
-                repo.dbHistoryPushActionFail(actionName, e.message ?: "Unknown error")
-                historyLoad()
+                if (e is HttpException && e.code() == 401) {
+                    _authErrorEvent.emit(Unit)
+                }
+                else {
+                    repo.dbHistoryPushActionFail(actionName, e.message ?: "Unknown error")
+                    historyLoad()
+                }
             }
         }
     }

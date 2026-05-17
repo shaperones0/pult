@@ -60,7 +60,7 @@ class MemoryLogHandler(logging.Handler):
 
 
 memory_handler = MemoryLogHandler(
-    max_records=500, target=logging.StreamHandler(sys.stderr)
+    max_records=500,
 )
 memory_handler.setLevel(logging.INFO)
 memory_handler.setFormatter(logging.Formatter('%(message)s'))

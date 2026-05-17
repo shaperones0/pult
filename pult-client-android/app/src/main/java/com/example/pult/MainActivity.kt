@@ -124,12 +124,31 @@ class MainActivity : AppCompatActivity() {
         }
 
         lifecycleScope.launch {
+            viewModel.authErrorEvent.collect {
+                AlertDialog.Builder(this@MainActivity, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("Ошибка авторизации")
+                    .setMessage("API ключ недействителен или был изменен. Пожалуйста, войдите заново.")
+                    .setCancelable(false)
+                    .setPositiveButton("ОК") { _, _ ->
+                        performLogout()
+                    }
+                    .show()
+            }
+        }
+
+        lifecycleScope.launch {
             viewModel.wsMetrics.collect { metricsJson ->
                 try {
                     val jsonObject = JSONObject(metricsJson)
-                    val cpuUsage = jsonObject.getDouble("cpu_usage_percent").toFloat()
-                    val ramUsage = jsonObject.getDouble("ram_usage_percent").toFloat()
+                    val metricsObject = jsonObject.getJSONObject("metrics")
+                    val cpuUsage = metricsObject.getDouble("cpu_usage_percent").toFloat()
+                    val ramUsage = metricsObject.getDouble("ram_usage_percent").toFloat()
                     chartManager.chartLivePush(cpuUsage, ramUsage)
+
+                    if (jsonObject.has("logs")) {
+                        val logsArray = jsonObject.getJSONArray("logs")
+                        viewModel.processIncomingLogs(logsArray)
+                    }
 
                     socketTicksCount++
                     if (socketTicksCount >= 10) {

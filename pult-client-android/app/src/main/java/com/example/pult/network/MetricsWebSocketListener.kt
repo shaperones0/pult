@@ -8,18 +8,18 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 
 class MetricsWebSocketListener(
-    private val metricsFlow: MutableStateFlow<String>
+    private val metricsFlow: MutableStateFlow<String>,
+    private val initialTimestamp: Long
 ) : WebSocketListener() {
 
     private val tag = "PultWS"
 
     override fun onOpen(webSocket: WebSocket, response: Response) {
-        Log.d(tag, "Connection open!")
-        metricsFlow.value = "WS: Connected"
+        val jsonPayload = "{\"last_timestamp\": $initialTimestamp}"
+        webSocket.send(jsonPayload)
     }
 
     override fun onMessage(webSocket: WebSocket, text: String) {
-        Log.d(tag, "Received: $text")
         metricsFlow.value = text
     }
 
@@ -29,7 +29,6 @@ class MetricsWebSocketListener(
     }
 
     override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-        Log.e(tag, "Error: ${t.message}")
-        metricsFlow.value = "WS: Error: ${t.message}"
+        metricsFlow.value = "{\"error\": \"Connection failed\"}"
     }
 }

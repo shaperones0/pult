@@ -5,7 +5,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.EditText
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
@@ -13,7 +15,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 
@@ -23,6 +24,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 import com.example.pult.ui.ChartManager
+import com.example.pult.ui.FavoriteAdapter
 
 class MainActivity : AppCompatActivity() {
 
@@ -32,6 +34,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var chartManager: ChartManager
     private lateinit var prefsManager: PrefsManager
+    private lateinit var favoriteAdapter: FavoriteAdapter
 
     var socketTicksCount = 0
 
@@ -71,20 +74,26 @@ class MainActivity : AppCompatActivity() {
         }
 
         adapter = HistoryAdapter()
+        favoriteAdapter = FavoriteAdapter(
+            onCommandClick = { command ->
+                viewModel.sendCommand(command)
+            },
+            onCommandLongClick = { command ->
+                viewModel.favoritesRemove(command)
+            }
+        )
+        binding.rvFavorites.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        binding.rvFavorites.adapter = favoriteAdapter
+
+        binding.btnNewCommand.setOnClickListener {
+            showCommandDialog()
+        }
 
         val layoutManager = LinearLayoutManager(this)
         layoutManager.stackFromEnd = true
         // vertical
         binding.rvHistory.layoutManager = layoutManager
         binding.rvHistory.adapter = adapter
-
-        // sub
-        lifecycleScope.launch {
-            viewModel.statusText.collect { current ->
-                binding.tvStatus.text = current
-
-            }
-        }
 
         lifecycleScope.launch {
             viewModel.historyList.collect { list ->
@@ -100,6 +109,14 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 chartManager.chartHistoryFromList(list)
+            }
+        }
+
+        lifecycleScope.launch {
+            viewModel.favoriteList.collect { list ->
+                val layoutManager = binding.rvFavorites.layoutManager as LinearLayoutManager
+                favoriteAdapter.submitList(list)
+
             }
         }
 
@@ -120,24 +137,28 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        binding.btnSend.setOnClickListener {
-            viewModel.sendCommand()
-        }
-
-        binding.btnPing.setOnClickListener {
-            val workRequest = OneTimeWorkRequestBuilder<PcMonitorWorker>().build()
-            val workManager = WorkManager.getInstance(this@MainActivity)
-
-            workManager.enqueue(workRequest)
-            workManager.getWorkInfoByIdLiveData(workRequest.id)
-                .observe(this@MainActivity) { workInfo ->
-                    if (workInfo != null && workInfo.state.isFinished) {
-                        viewModel.refreshHistory()
-                    }
-                }
-        }
-
         checkPermissionsAndStartMonitoring()
+    }
+
+    private fun showCommandDialog() {
+        val editText = EditText(this).apply {
+            hint = "dir | ping 8.8.8.8 | python script.py"
+            setTextColor(android.graphics.Color.WHITE)
+            setHintTextColor(android.graphics.Color.GRAY)
+        }
+
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("Execute Command")
+            .setView(editText)
+            .setPositiveButton("Send") { _, _ ->
+                val command = editText.text.toString().trim()
+                if (command.isNotEmpty()) {
+                    viewModel.favoritesAdd(command)
+                    viewModel.sendCommand(command)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun performLogout() {
@@ -175,10 +196,9 @@ class MainActivity : AppCompatActivity() {
                 if (workInfos.isNotEmpty()) {
                     val isAnyFinished = workInfos.any { it.state.isFinished}
                     if (isAnyFinished) {
-                        viewModel.refreshHistory()
+                        viewModel.historyRefresh()
                     }
                 }
             }
     }
-
 }

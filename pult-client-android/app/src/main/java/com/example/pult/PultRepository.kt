@@ -91,9 +91,9 @@ class PultRepository(
         dbHelper.favoriteRemove(command)
     }
 
-    suspend fun netPostAction(actionName: String): ActionResponse {
+    suspend fun netPostAction(actionName: String, payload: String? = null): ActionResponse {
         return NetworkClient.api.postAction(
-            ActionRequest(actionName = actionName, payload = null)
+            ActionRequest(actionName = actionName, payload = payload)
         )
     }
 }

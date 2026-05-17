@@ -2,18 +2,13 @@ package com.example.pult
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.pult.db.DatabaseHelper
+import com.example.pult.db.FavoriteEntity
 import com.example.pult.db.HistoryEntity
-import com.example.pult.network.ActionRequest
-import com.example.pult.network.MetricsWebSocketListener
-import com.example.pult.network.NetworkClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import okhttp3.Request
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
 
@@ -26,13 +21,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _wsMetrics = MutableStateFlow("Waiting for WS...")
     val wsMetrics: StateFlow<String> = _wsMetrics
 
+    private val _favoriteList = MutableStateFlow<List<FavoriteEntity>>(emptyList())
+    val favoriteList: StateFlow<List<FavoriteEntity>> = _favoriteList
+
     private val repo = PultRepository(
         application,
         _wsMetrics,
     )
 
     init {
-        loadHistory()
+        historyLoad()
+        favoritesLoad()
         repo.wsStart()
     }
 
@@ -42,38 +41,56 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         repo.wsClose("App closed")
     }
 
-    private fun loadHistory() {
+    private fun historyLoad() {
         viewModelScope.launch(Dispatchers.IO) {
             _historyList.value = repo.dbHistoryList()
         }
     }
 
-    fun refreshHistory() {
-        loadHistory()
+    fun historyRefresh() {
+        historyLoad()
     }
 
     fun saveLiveMetricsToDb(cpu: Float, ram: Float) {
         viewModelScope.launch(Dispatchers.IO) {
             repo.dbHistoryPushMonitor(cpu, ram)
-            loadHistory()
+            historyLoad()
         }
     }
 
-    fun sendCommand() {
+    private fun favoritesLoad() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _favoriteList.value = repo.dbFavoriteList()
+        }
+    }
+
+    fun favoritesAdd(command: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.dbFavoriteUpsert(command)
+            _favoriteList.value = repo.dbFavoriteList()
+        }
+    }
+
+    fun favoritesRemove(command: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repo.dbFavoriteRemove(command)
+            _favoriteList.value = repo.dbFavoriteList()
+        }
+    }
+
+    fun sendCommand(command: String) {
         _statusText.value = "Sending request..."
-        val actionName = "lock"
+        val actionName = "cmd"
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val response = repo.netPostAction(actionName)
+                val response = repo.netPostAction(actionName, command)
 
-                _statusText.value = "Success: ${response.message}"
                 repo.dbHistoryPushActionResponse(actionName, response.message)
-                loadHistory()
+                historyLoad()
 
             } catch (e: Exception) {
-                _statusText.value = "Error: ${e.message}"
                 repo.dbHistoryPushActionFail(actionName, e.message ?: "Unknown error")
-                loadHistory()
+                historyLoad()
             }
         }
     }

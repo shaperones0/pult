@@ -3,8 +3,14 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_marginEnd="8dp"
-    android:background="#333333"
-    android:padding="8dp">
+    android:layout_marginTop="4dp"
+    android:layout_marginBottom="4dp"
+    android:background="@drawable/bg_favorite_chip"
+    android:paddingStart="16dp"
+    android:paddingEnd="16dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp"
+    android:gravity="center">
 
     <TextView
         android:id="@+id/tvCommandText"
@@ -13,5 +19,6 @@
         android:textColor="#64B5F6"
         android:textSize="14sp"
         android:textStyle="bold"
-        android:text="ping -c 4 8.8.8.8" />
+        android:fontFamily="monospace"
+        android:text="ping 8.8.8.8" />
 </LinearLayout>

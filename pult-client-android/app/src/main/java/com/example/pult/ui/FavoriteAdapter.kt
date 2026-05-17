@@ -34,7 +34,7 @@ class FavoriteAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(item: FavoriteEntity) {
-            binding.tvCommandText.text = item.commandText
+            binding.tvCommandText.text = strCropEllipsis(item.commandText, 10)
 
             binding.root.setOnClickListener {
                 onCommandClick(item.commandText)
@@ -44,6 +44,13 @@ class FavoriteAdapter(
                 onCommandLongClick(item.commandText)
                 true //no need for regular click
             }
+        }
+
+        private fun strCropEllipsis(str: String, maxLen: Int): String {
+            if (str.length > maxLen) {
+                return str.substring(0, maxLen) + "..."
+            }
+            return str
         }
     }
 }

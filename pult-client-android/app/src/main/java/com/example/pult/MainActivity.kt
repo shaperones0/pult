@@ -3,9 +3,12 @@ package com.example.pult
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.Typeface
 import android.os.Build
 import android.os.Bundle
 import android.widget.EditText
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -76,7 +79,7 @@ class MainActivity : AppCompatActivity() {
         adapter = HistoryAdapter()
         favoriteAdapter = FavoriteAdapter(
             onCommandClick = { command ->
-                viewModel.sendCommand(command)
+                showCommandConfirmDialog(command)
             },
             onCommandLongClick = { command ->
                 viewModel.favoritesRemove(command)
@@ -141,23 +144,98 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showCommandDialog() {
+        val titleView = TextView(this).apply {
+            text = "Выполнить"
+        }
+        styleAlertTitleView(titleView)
+
         val editText = EditText(this).apply {
             hint = "dir | ping 8.8.8.8 | python script.py"
-            setTextColor(android.graphics.Color.WHITE)
-            setHintTextColor(android.graphics.Color.GRAY)
+            setTextColor(Color.WHITE)
+            setHintTextColor(Color.GRAY)
+            isSingleLine = true
         }
 
+        val container = android.widget.FrameLayout(this)
+        val params = android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            val marginSide = (16 * resources.displayMetrics.density).toInt()
+            setMargins(marginSide, 0, marginSide, 0)
+        }
+        editText.layoutParams = params
+        container.addView(editText)
+
         AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle("Execute Command")
-            .setView(editText)
-            .setPositiveButton("Send") { _, _ ->
+            .setCustomTitle(titleView)
+            .setView(container)
+            .setPositiveButton("Отправить") { _, _ ->
                 val command = editText.text.toString().trim()
+                if (command.isNotEmpty()) {
+                    showCommandConfirmDialog(command)
+                }
+            }
+            .setNegativeButton("Отмена", null)
+            .show()
+    }
+
+    private fun styleAlertTitleView(tv: TextView) {
+        tv.apply {
+            textSize = 20f
+            setTextColor(Color.WHITE)
+            setTypeface(null, Typeface.BOLD)
+
+            val density = resources.displayMetrics.density
+            val horizontalPadding = (20 * density).toInt()
+            val topPadding = (2 * density).toInt()
+            val bottomPadding = (8 * density).toInt()
+
+            setPadding(horizontalPadding, topPadding, horizontalPadding, bottomPadding)
+        }
+    }
+
+    private fun showCommandConfirmDialog(command: String) {
+        val titleView = TextView(this).apply {
+            text = "Отправить команду?"
+        }
+        styleAlertTitleView(titleView)
+
+        val textView = TextView(this).apply {
+            text = command
+            setTextColor(Color.WHITE)
+            textSize = 18f
+            setTypeface(Typeface.MONOSPACE)
+
+            isSingleLine = true
+        }
+
+        val scrollView = android.widget.HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+        }
+        scrollView.addView(textView)
+
+        val container = android.widget.FrameLayout(this)
+        val params = android.widget.FrameLayout.LayoutParams(
+            android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+            android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            val margin = (16 * resources.displayMetrics.density).toInt()
+            setMargins(margin, 0, margin, 0)
+        }
+        scrollView.layoutParams = params
+        container.addView(scrollView)
+
+        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setCustomTitle(titleView)
+            .setView(container)
+            .setPositiveButton("Отправить") { _, _ ->
                 if (command.isNotEmpty()) {
                     viewModel.favoritesAdd(command)
                     viewModel.sendCommand(command)
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton("Отмена", null)
             .show()
     }
 

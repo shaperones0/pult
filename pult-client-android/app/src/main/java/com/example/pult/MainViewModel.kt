@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pult.db.FavoriteEntity
 import com.example.pult.db.HistoryEntity
+import com.example.pult.util.extractHostname
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _authErrorEvent = MutableSharedFlow<Unit>()
     val authErrorEvent = _authErrorEvent.asSharedFlow()
 
+    private val _serverHostname = MutableStateFlow("Disconnected")
+    val serverHostname: StateFlow<String> = _serverHostname
+
     private val repo = PultRepository(application, _wsMetrics)
 
     init {
@@ -44,6 +48,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         super.onCleared()
 
         repo.wsClose("App closed")
+    }
+
+    fun loadServerName(prefsManager: PrefsManager) {
+        val rawUrl = prefsManager.getServerUrl()
+        _serverHostname.value = rawUrl?.extractHostname() ?: "Unknown Server"
     }
 
     private fun historyLoad() {
@@ -108,7 +117,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val response = repo.netPostAction(actionName, command)
-                repo.dbHistoryPushActionResponse(actionName, response.message)
+                repo.dbHistoryPushActionResponse(
+                    actionName,
+                    response.message
+                )
                 historyLoad()
 
             } catch (e: Exception) {
@@ -116,7 +128,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     _authErrorEvent.emit(Unit)
                 }
                 else {
-                    repo.dbHistoryPushActionFail(actionName, e.message ?: "Unknown error")
+                    repo.dbHistoryPushActionFail(
+                        actionName,
+                        e.message ?: "Unknown error"
+                    )
                     historyLoad()
                 }
             }

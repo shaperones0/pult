@@ -9,6 +9,7 @@ import android.os.Build
 import android.os.Bundle
 import android.widget.EditText
 import android.widget.TextView
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -53,6 +54,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
+        enableEdgeToEdge()
         setContentView(binding.root)
 
         prefsManager = PrefsManager(this)
@@ -61,6 +63,13 @@ class MainActivity : AppCompatActivity() {
         chartManager.chartsSetup()
 
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
+
+        viewModel.loadServerName(prefsManager)
+        lifecycleScope.launch {
+            viewModel.serverHostname.collect { hostname ->
+                binding.tvStatus?.text = "● $hostname"
+            }
+        }
 
         binding.btnMenu.setOnClickListener {
             binding.drawerLayout.openDrawer(GravityCompat.START)

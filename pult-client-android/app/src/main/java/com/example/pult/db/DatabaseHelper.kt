@@ -88,14 +88,22 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, "pult_databas
         val currentTime = System.currentTimeMillis()
 
         //check exists
-        val cursor = db.rawQuery("SELECT id FROM favorites WHERE commandText = ?", arrayOf(command))
+        val cursor = db.rawQuery(
+            "SELECT id FROM favorites WHERE commandText = ?",
+            arrayOf(command)
+        )
         if (cursor.moveToFirst()) {
             //update time
             val id = cursor.getInt(0)
             val values = ContentValues().apply {
                 put("lastUsed", currentTime)
             }
-            db.update("favorites", values, "id = ?", arrayOf(id.toString()))
+            db.update(
+                "favorites",
+                values,
+                "id = ?",
+                arrayOf(id.toString())
+            )
         } else {
             val values = ContentValues().apply {
                 put("commandText", command)

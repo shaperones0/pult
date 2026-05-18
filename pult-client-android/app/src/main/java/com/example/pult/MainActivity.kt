@@ -289,7 +289,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startBackgroundMonitoring() {
-        val workRequest = PeriodicWorkRequestBuilder<PcMonitorWorker>(15, TimeUnit.MINUTES).build()
+        val workRequest = PeriodicWorkRequestBuilder<PcMonitorWorker>(
+            15,
+            TimeUnit.MINUTES
+        ).build()
         val workManager = WorkManager.getInstance(this)
         workManager.enqueueUniquePeriodicWork(
             "pc_monitor",
@@ -300,7 +303,9 @@ class MainActivity : AppCompatActivity() {
         workManager.getWorkInfosForUniqueWorkLiveData("pc_monitor")
             .observe(this) { workInfos ->
                 if (workInfos.isNotEmpty()) {
-                    val isAnyFinished = workInfos.any { it.state.isFinished}
+                    val isAnyFinished = workInfos.any {
+                        it.state.isFinished
+                    }
                     if (isAnyFinished) {
                         viewModel.historyRefresh()
                     }

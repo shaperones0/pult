@@ -115,12 +115,12 @@
         let pixiShVertSrc = "";
 
         const fetchShaders = async () => {
-            await fetch('/data/glsl/pult_vert.glsl')
+            await fetch('./data/glsl/pult_vert.glsl')
                 .then(response => response.text())
                 .then((data) => {
                     pixiShVertSrc = data
                 });
-            await fetch('/data/glsl/pult_frag.glsl')
+            await fetch('./data/glsl/pult_frag.glsl')
                 .then(response => response.text())
                 .then((data) => {
                     pixiShFragSrc = data

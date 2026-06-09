@@ -4,6 +4,8 @@
 
 Проект состоит из бэкенда на Python (FastAPI) и нативного Android-клиента.
 
+https://shaperones0.github.io/pult/
+
 ## Структура
 
 - `pult-server/`: Демонстрационный бэкенд, написанный на FastAPI.
@@ -30,7 +32,7 @@
 ```bash
 cd pult-server
 uv sync
-uv run uvicorn app:app --host 0.0.0.0 --port 8000
+uv run uvicorn app:app --host 127.0.0.1 --port 8000
 ```
 
 Интерактивная документация API (Swagger UI) доступна по адресу `http://localhost:8000/docs`.

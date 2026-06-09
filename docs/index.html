@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8">
+    <title>PULT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/night.css">
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/highlight/github.css"> -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark-dimmed.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/8.6.6/pixi.min.js"
+            integrity="sha512-9Che/pADxtzmgRM/Lt7g+wgmgVPNu4qLCOjH+owFqCSpd9HHCi1fMYp+XtfE8nOdRQWUsD0TUNQUc5Z1SwaLyw=="
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"></script>
+    <style>
+        .has-highlights {
+            border-radius: 10px;
+        }
+        .grayed {
+            color: gray;
+
+            .inlinecode {
+                /* color: #5d6f83 !important; */
+                color: #aaaaaa !important;
+            }
+        }
+
+        .ml-20 {
+            margin-right: 20%;
+        }
+        .lay-hor {
+            display: flex;
+            vertical-align: middle;
+        }
+        .col-red {
+            color: #ff6467;
+        }
+        .col-yellow {
+            color: #fdc700;
+        }
+        .col-green {
+            color: #00c950;
+        }
+        .col-blue {
+            color: #51a2ff;
+        }
+        .h-fixed {
+            height: 400px;
+            padding-top: 0px;
+            padding-bottom: 50px;
+        }
+        .inlinecode {
+            font-family: monospace;
+            color: #b5d8ff !important;
+            vertical-align: bottom !important;
+            margin-top: auto;
+            line-height: 111%;
+            background-color: #2f2f2f88;
+
+            padding: 0 5px;
+            border-radius: 5px;
+            * {
+                vertical-align: bottom;
+            }
+        }
+
+        .backgrounds {
+            opacity: 0 !important;
+            display: none !important;
+        }
+        .slide-background {
+            opacity: 0 !important;
+            display: none !important;
+        }
+
+        .pixi-canvas {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            z-index: -10;
+            left: 0;
+            top: 0;
+        }
+        .card {
+            flex-grow: 3;
+            margin: auto 20px;
+            padding: 20px;
+
+            backdrop-filter: blur(2px);
+            background-color: #6e6e6e22;
+            border-radius: 16px;
+        }
+
+        .hljs {
+            backdrop-filter: blur(2px);
+            background-color: #6e6e6e22;
+            border-radius: 16px;
+        }
+
+        .pend-vid {
+            margin-left: 100px;
+            margin-top: 50px;
+        }
+
+        .b-rad {
+            border-radius: 16px;
+        }
+    </style>
+    <script>
+        // load shaders func
+        let pixiShFragSrc = "";
+        let pixiShVertSrc = "";
+
+        const fetchShaders = async () => {
+            await fetch('/data/glsl/pult_vert.glsl')
+                .then(response => response.text())
+                .then((data) => {
+                    pixiShVertSrc = data
+                });
+            await fetch('/data/glsl/pult_frag.glsl')
+                .then(response => response.text())
+                .then((data) => {
+                    pixiShFragSrc = data
+                });
+        }
+
+        //the stuff code
+        let pixiApp = undefined;
+        let pixiBackground = undefined;
+        async function loadCanvas() {
+            pixiApp = new PIXI.Application();
+
+            await pixiApp.init({
+                resizeTo: window,
+                preference: 'webgl'
+            });
+            pixiApp.canvas.classList.add("pixi-canvas");
+            document.body.appendChild(pixiApp.canvas);
+            pixiBackground = PIXI.Sprite.from(PIXI.Texture.EMPTY);
+            pixiBackground.width = window.innerWidth;
+            pixiBackground.height = window.innerHeight;
+            pixiApp.stage.addChild(pixiBackground);
+
+            const filter = new PIXI.Filter({
+                glProgram: new PIXI.GlProgram({
+                    fragment: pixiShFragSrc,
+                    vertex: pixiShVertSrc,
+                }),
+                resources: {
+                    timeUniforms: {
+                        uTime: { value: 0.0, type: 'f32' },
+                    },
+                },
+            });
+
+            // Add the filter
+            pixiApp.stage.filters = [filter];
+
+            pixiApp.ticker.add((ticker) => {
+                filter.resources.timeUniforms.uniforms.uTime += 0.04 * ticker.deltaTime;
+            });
+        }
+
+        window.onload = (_) => {
+            if (1) {
+                fetchShaders().then(() => {
+                    loadCanvas().then(_ => console.log("canvased"));
+                });
+            }
+        }
+
+        let timeoutId = 0;
+        window.onresize = (_) => {
+            if (pixiApp !== undefined) {
+                // refreshing timeout
+                const refreshStage = () => {
+                    pixiApp.stage.setSize(window.innerWidth, window.innerHeight);
+                    timeoutId = 0;
+                }
+
+                if (timeoutId !== 0) {
+                    window.clearTimeout(timeoutId);
+                }
+                timeoutId = window.setTimeout(refreshStage, 100);
+            }
+        };
+    </script>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+
+            <section data-background-opacity="0" data-state="nobg">
+                <h1>P.U.L.T.</h1>
+                <h3>RCE клиент</h3>
+
+            </section>
+
+            <section>
+                <div class="lay-hor">
+                <div style="flex-grow: 2">
+                    <h3>Обзор решения<hr></h3>
+                    <div class="ml-20">
+                    <ul>
+                        <li>Мониторинг<br><small class="grayed">в реальном времени</small></li>
+                        <li>Выполнение команд<br><small class="grayed">с перехватом консольного вывода</small></li>
+                    </ul>
+                    </div>
+                </div>
+                <div style="margin: auto 0 auto 100px;">
+                    <img src="./data/img/pult-0.png" height="500">
+                </div>
+                </div>
+            </section>
+
+            <section>
+                <h3>Интеграция</h3>
+                <img src="./data/img/pult-arc.svg" height="300">
+            </section>
+
+            <section>
+                <div class="lay-hor">
+                    <div style="flex-grow: 1; margin: auto 0">
+                        <h2>Д<br>Е<br>М<br>О</h2>
+                    </div>
+                    <div style="flex-grow: 1; margin: auto 20px auto 0;">
+                        <video height="600" autoplay loop muted data-autoplay>
+                            <source src="./data/img/pult-live.mp4" type="video/mp4" />
+                        </video>
+                    </div>
+                </div>
+
+            </section>
+
+            <section>
+                <h3>Техническое содержание <small>(фичи)</small></h3>
+                <ol>
+                    <li>Стэк технологий</li>
+                    <li>Мониторинг в реальном времени</li>
+                    <li>Обработка ошибок</li>
+                    <li>Сетевой слой</li>
+                    <li>Кастомные UI элементы</li>
+                    <li>Сохранение состояния в БД</li>
+                </ol>
+            </section>
+
+            <section>
+                <h3>Стэк технологий</h3>
+                <img src="./data/img/pult-tech.svg" width="1600">
+            </section>
+
+            <section>
+
+                <div class="lay-hor">
+                <div style="margin: auto 50px auto 0;">
+                    <video width="500" autoplay loop muted data-autoplay>
+                        <source src="./data/img/pult-live.mp4" type="video/mp4" />
+                    </video>
+                    <!-- <img src="/data/img/pult-1.png" width="500"> -->
+                </div>
+                <div style="flex-grow: 1">
+                    <h3>Мониторинг в реальном времени</h3>
+                    <hr>
+                    <ul>
+                        <li><b class="col-red">Проблема потока</b><br><small class="grayed">WebSocket блокирует главный поток</small></li>
+                        <li><b class="col-yellow">Асинхронная архитектура</b><br><small class="grayed">Использование реактивного подхода со <a class="inlinecode">StateFlow</a> в связке с корутинами; сетевой парсинг JSON вынесен в <a class="inlinecode">Dispatchers.IO</a></small></li>
+                        <li><b class="col-green">Результаты</b><br><small class="grayed">Плавность интерфейса сохраняется при массовом спаме логов</small></li>
+                    </ul>
+                </div>
+                </div>
+            </section>
+
+            <section data-transition="slide-in fade-out">
+                <h3>Обработка ошибок</h3>
+                <div class="h-fixed">
+                    <hr>
+                    <ul>
+                        <li><b class="col-red">Жизненный цикл Android</b><br><small class="grayed">Обычный <a class="inlinecode">StateFlow</a> кэширует состояние, из-за чего при повороте экрана пользователя может выкинуть на экран логина повторно</small></li>
+                        <li><b class="col-yellow">Паттерн "Fire-and-Forget"</b><br><small class="grayed">Для инвалидации сессии применен <a class="inlinecode">SharedFlow</a>; cобытие транслируется один раз и не сохраняется в памяти</small></li>
+                        <li><b class="col-green">Изоляция слоев</b><br><small class="grayed">
+                            <a class="inlinecode">ViewModel</a> перехватывает ошибку сети и лишь "дергает за ниточку"; слой UI реагирует на это логаутом, оставаясь полностью отвязанным от сетевой логики.</small></li>
+                    </ul>
+                </div>
+
+            </section>
+            <section data-transition="fade-in slide-out">
+
+
+                <section data-transition="fade">
+                    <h3>Обработка ошибок</h3>
+                    <div class="h-fixed">
+                        <pre><code data-trim data-line-numbers class="language-kotlin">
+                        // MainViewModel
+                        try {
+                            val response = repo.netPostAction(actionName, command)
+                            repo.dbHistoryPushActionResponse(
+                                actionName,
+                                response.message
+                            )
+                            historyLoad()
+
+                        } catch (e: Exception) {
+                            if (e is HttpException && e.code() == 401) {
+                                _authErrorEvent.emit(Unit)
+                            }
+                            else {
+                                repo.dbHistoryPushActionFail(
+                                    actionName,
+                                    e.message ?: "Unknown error"
+                                )
+                                historyLoad()
+                            }
+                        }
+                        </code></pre>
+                    </div>
+                </section>
+
+                <section data-transition="fade">
+                    <h3>Обработка ошибок</h3>
+                    <div class="h-fixed">
+                        <pre><code data-trim data-line-numbers="3" class="language-kotlin">
+                        // MainViewModel
+                        try {
+                            val response = repo.netPostAction(actionName, command)
+                            repo.dbHistoryPushActionResponse(
+                                actionName,
+                                response.message
+                            )
+                            historyLoad()
+
+                        } catch (e: Exception) {
+                            if (e is HttpException && e.code() == 401) {
+                                _authErrorEvent.emit(Unit)
+                            }
+                            else {
+                                repo.dbHistoryPushActionFail(
+                                    actionName,
+                                    e.message ?: "Unknown error"
+                                )
+                                historyLoad()
+                            }
+                        }
+                        </code></pre>
+                    </div>
+                </section>
+
+                <section data-transition="fade">
+                    <h3>Обработка ошибок</h3>
+                    <div class="h-fixed">
+                        <pre><code data-trim data-line-numbers="11-13" class="language-kotlin">
+                        // MainViewModel
+                        try {
+                            val response = repo.netPostAction(actionName, command)
+                            repo.dbHistoryPushActionResponse(
+                                actionName,
+                                response.message
+                            )
+                            historyLoad()
+
+                        } catch (e: Exception) {
+                            if (e is HttpException && e.code() == 401) {
+                                _authErrorEvent.emit(Unit)
+                            }
+                            else {
+                                repo.dbHistoryPushActionFail(
+                                    actionName,
+                                    e.message ?: "Unknown error"
+                                )
+                                historyLoad()
+                            }
+                        }
+                        </code></pre>
+                    </div>
+                </section>
+
+                <section data-transition="fade">
+                    <h3>Обработка ошибок</h3>
+                    <div class="h-fixed">
+                        <pre><code data-trim data-line-numbers="15-19" class="language-kotlin">
+                        // MainViewModel
+                        try {
+                            val response = repo.netPostAction(actionName, command)
+                            repo.dbHistoryPushActionResponse(
+                                actionName,
+                                response.message
+                            )
+                            historyLoad()
+
+                        } catch (e: Exception) {
+                            if (e is HttpException && e.code() == 401) {
+                                _authErrorEvent.emit(Unit)
+                            }
+                            else {
+                                repo.dbHistoryPushActionFail(
+                                    actionName,
+                                    e.message ?: "Unknown error"
+                                )
+                                historyLoad()
+                            }
+                        }
+                        </code></pre>
+                    </div>
+                </section>
+            </section>
+            <section>
+                <h3>Сетевой слой</h3>
+                <div class="h-fixed">
+                <p>Перехват запросов и добавление токена:</p>
+                <pre><code data-trim data-line-numbers class="language-kotlin">
+                // network.NetworkClient
+                val baseUrl = prefsManager.getServerUrl() ?: return
+                val apiKey = prefsManager.getApiKey() ?: ""
+
+                _okHttpClient = OkHttpClient.Builder()
+                    .addInterceptor { chain ->
+                        val request = chain.request().newBuilder()
+                            .addHeader("X-Api-Key", apiKey)
+                            .build()
+                        chain.proceed(request)
+                    }
+                    .build()
+                </code></pre>
+                </div>
+            </section>
+
+            <section>
+                <h3>Кастомный UI</h3>
+                <div class="lay-hor">
+                    <a style="flex-grow: 1"></a>
+                    <img class="b-rad" src="./data/img/pult-alert.png" height="200">
+                    <a style="flex-grow: 1"></a>
+                    <img class="b-rad" src="./data/img/pult-pills.png" height="200">
+                    <a style="flex-grow: 1"></a>
+                </div>
+            </section>
+
+            <section>
+                <h3>SQLite</h3>
+                <div class="h-fixed">
+
+                <pre><code data-trim data-line-numbers class="language-kotlin">
+                // db.DatabaseHelper
+                fun favoriteUpsert(command: String) {
+                    //insert new favorite command or update last used timestamp of existing one
+
+                    val db = writableDatabase
+                    val currentTime = System.currentTimeMillis()
+
+                    //check exists
+                    val cursor = db.rawQuery(
+                        "SELECT id FROM favorites WHERE commandText = ?",
+                        arrayOf(command)
+                    )
+                    if (cursor.moveToFirst()) {
+                        //update time
+                        val id = cursor.getInt(0)
+                        val values = ContentValues().apply {
+                            put("lastUsed", currentTime)
+                        }
+                        db.update(
+                            "favorites",
+                            values,
+                            "id = ?",
+                            arrayOf(id.toString())
+                        )
+                    } else {
+                        val values = ContentValues().apply {
+                            put("commandText", command)
+                            put("lastUsed", currentTime)
+                        }
+                        db.insert("favorites", null, values)
+                    }
+
+                    cursor.close()
+                }
+                </code></pre>
+                </div>
+            </section>
+
+            <section>
+                <h3>Работа в фоне</h3>
+                <div class="h-fixed">
+
+                <pre><code data-trim data-line-numbers class="language-kotlin">
+                // MainActivity
+                private fun startBackgroundMonitoring() {
+                    val workRequest = PeriodicWorkRequestBuilder&lt;PcMonitorWorker>(
+                        15,
+                        TimeUnit.MINUTES
+                    ).build()
+                    val workManager = WorkManager.getInstance(this)
+                    workManager.enqueueUniquePeriodicWork(
+                        "pc_monitor",
+                        ExistingPeriodicWorkPolicy.KEEP,
+                        workRequest
+                    )
+
+                    workManager.getWorkInfosForUniqueWorkLiveData("pc_monitor")
+                        .observe(this) { workInfos ->
+                            if (workInfos.isNotEmpty()) {
+                                val isAnyFinished = workInfos.any {
+                                    it.state.isFinished
+                                }
+                                if (isAnyFinished) {
+                                    viewModel.historyRefresh()
+                                }
+                            }
+                        }
+                }
+                </code></pre>
+                </div>
+            </section>
+
+            <section>
+                <h3>ROADMAP</h3>
+                <div class="lay-hor">
+                    <div style="flex-grow: 5; min-width: 505px;">
+                        <div class="card" style="margin-bottom: 40px;">
+                            <b class="col-blue">Уведомления</b><br><small class="grayed">при повышенной нагрузке сервера</small>
+                        </div>
+
+                        <div class="card">
+                            <b class="col-blue">Файловый менеджер</b>
+                        </div>
+                    </div>
+                    <a style="flex-grow: 1"></a>
+                    <div class="card" style="flex-grow: 2">
+                        <b class="col-green">Макросы</b><br><small class="grayed">последовательности команд с визаулизаций результата каждой</small>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h3>Спасибо за внимание!</h3>
+                <small>вопросы?<br><br><br><br><br><br><br><br><br>думайте.</small>
+
+                <video class="pend-vid" src="./data/img/elbailedeltroleo.mp4" autoplay loop muted data-autoplay></video>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/plugin/zoom/zoom.js"></script>
+
+    <script>
+        Reveal.initialize({
+            hash: true,
+            // width: 1260,
+            // margin: 0.1,
+            slideNumber: true,
+            plugins: [ RevealHighlight, RevealZoom ]
+        });
+    </script>
+</body>
+</html>

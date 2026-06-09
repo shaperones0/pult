@@ -22,7 +22,7 @@ https://shaperones0.github.io/pult/
     - Локальная база данных для сохранения избранных команд и отслеживания истории выполнения.
     - Фоновый воркер для постоянного мониторинга.
 
-## Технологи
+## Технологии
 
 - Бэкенд: Python 3.14, `uv`, FastAPI, WebSockets.
 - Клиент: Kotlin, Android SDK, Retrofit 2 & OkHttp, MPAndroidChart, ZXing Android Embedded.
